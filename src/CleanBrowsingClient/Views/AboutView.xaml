@@ -16,7 +16,8 @@
                 <SolidColorBrush Color="White"/>
             </materialDesign:Card.Background>
             <StackPanel Orientation="Vertical">
-                <TextBlock Style="{DynamicResource MaterialDesignHeadline5TextBlock}">About CleanBrowsing Client</TextBlock>
+                <TextBlock Style="{DynamicResource MaterialDesignHeadline5TextBlock}">CleanBrowsing Client</TextBlock>
+                <TextBlock Style="{DynamicResource MaterialDesignSubtitle1TextBlock}">Version : 1.0.0.0 &#160;&#160;&#160;© 2021 CleanBrowsing.org &#160;&#160;&#160;All rights reserved.</TextBlock>
                 <TextBlock VerticalAlignment="Center" Foreground="{DynamicResource MaterialDesignBodyLight}">
                     <LineBreak />
                     This application uses the DNSCrypt protocol. <LineBreak />
@@ -58,7 +59,8 @@
                 <Image Grid.Column="0" Width="100" Height="100" HorizontalAlignment="Center" VerticalAlignment="Center" Source="/Images/simplednscrypt_256.png"/>
                 <Image Grid.Column="2" Width="120" Height="120" HorizontalAlignment="Center" VerticalAlignment="Center" Source="/Images/dnscryptproxy_256.png"/>
                 <StackPanel Grid.Column="1">
-                    <TextBlock Style="{StaticResource MaterialDesignHeadline5TextBlock}" Margin="16 16 16 8">Open Source</TextBlock>
+                    <TextBlock Style="{StaticResource MaterialDesignHeadline5TextBlock}" Margin="16 16 16 0">Open Source</TextBlock>
+                    <TextBlock Style="{DynamicResource MaterialDesignSubtitle1TextBlock}" Margin="16 0 16 8">dnscrypt-proxy version : 2.0.42</TextBlock>
                     <TextBlock TextWrapping="Wrap" Margin="16 0 16 8" Foreground="{DynamicResource MaterialDesignBodyLight}"
                                VerticalAlignment="Top">This project is completely Open Source (MIT). It is based on dnscrypt-proxy and Simple DNSCrypt.
 If you want to support these projects, you can press the GitHub Star button, tweet or post about them.</TextBlock>

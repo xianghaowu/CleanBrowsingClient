@@ -58,9 +58,7 @@
             </materialDesign:ColorZone>
             <TextBlock DockPanel.Dock="Bottom" Margin="8,2,8,2" Foreground="{DynamicResource MaterialDesignBodyLight}" HorizontalAlignment="Right" VerticalAlignment="Stretch" Text="{Binding Footer}"/>
             <Grid>
-                <Grid.Background>
-                    <ImageBrush ImageSource="/Images/background.jpg" Stretch="UniformToFill"/>
-                </Grid.Background>
+                
                 <Grid.RowDefinitions>
                     <RowDefinition Height="Auto" />
                     <RowDefinition Height="*" />

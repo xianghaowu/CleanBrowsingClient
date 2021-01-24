@@ -3,6 +3,7 @@ using CleanBrowsingClient.Events;
 using CleanBrowsingClient.Helper;
 using CleanBrowsingClient.Models;
 using CleanBrowsingClient.Services;
+using CleanBrowsingClient.Views;
 using DnsCrypt.Stamps;
 using MaterialDesignThemes.Wpf;
 using Prism.Commands;
@@ -43,6 +44,10 @@ namespace CleanBrowsingClient.ViewModels
         private bool _isCustomFilterEnabled = false;
         private bool _isFamilyFilterEnabled = false;
         private bool _isAdultFilterEnabled = false;
+
+        //2021/01/22
+        private ConfigureSettingManager confSetting = new ConfigureSettingManager();
+        private ConfigureSetting prof_setting = new ConfigureSetting();
 
         public ISnackbarMessageQueue MessageQueue
         {
@@ -297,12 +302,12 @@ namespace CleanBrowsingClient.ViewModels
                     var version = DnsCryptProxyManager.GetVersion();
                     if (!string.IsNullOrEmpty(version))
                     {
-                        Title = $"{Global.ApplicationName} (dnscrypt-proxy {version})";
+                        Title = $"{Global.ApplicationName}"; //(dnscrypt-proxy {version})
                         _logger.Log($"dnscrypt-proxy version: {version}", Category.Info, Priority.Medium);
                     }
                     else
                     {
-                        Title = $"{Global.ApplicationName} (dnscrypt-proxy unknown)";
+                        Title = $"{Global.ApplicationName}"; // (dnscrypt-proxy unknown)
                         _logger.Log("dnscrypt-proxy version: unknown", Category.Warn, Priority.Medium);
                     }
                     _logger.Log($"loading {Global.DnsCryptConfigurationFile}", Category.Info, Priority.Medium);
@@ -657,33 +662,56 @@ namespace CleanBrowsingClient.ViewModels
 
         public async void HandleCustomStamp()
         {
-            try
+            bool bAuthPin = true;
+            if (File.Exists(confSetting.FileName))
             {
-                var stamp = _appConfiguration.Proxies.FirstOrDefault(p => p.Name.Equals(Global.DefaultCustomFilterKey));
-                if (stamp == null)
+                prof_setting = confSetting.Deserialize();
+            }
+
+            if (prof_setting.PinCode.Length > 0)
+            {
+                bAuthPin = ShowPasswordDlg();
+            }
+
+            if (bAuthPin)
+            {
+                try
                 {
-                    _regionManager.RequestNavigate("ContentRegion", "StampView");
+                    var stamp = _appConfiguration.Proxies.FirstOrDefault(p => p.Name.Equals(Global.DefaultCustomFilterKey));
+                    if (stamp == null)
+                    {
+                        _regionManager.RequestNavigate("ContentRegion", "StampView");
+                    }
+                    else
+                    {
+                        await HandleDnsCrypt("cleanbrowsing-custom");
+                    }
                 }
-                else
+                catch (Exception exception)
                 {
-                    await HandleDnsCrypt("cleanbrowsing-custom");
+                    _logger.Log($"HandleCustomStamp {exception.Message}", Category.Exception, Priority.High);
                 }
             }
-            catch (Exception exception)
-            {
-                _logger.Log($"HandleCustomStamp {exception.Message}", Category.Exception, Priority.High);
-            }
+                
         }
 
         public async Task HandleDnsCrypt(string filter)
         {
+            bool bAuthPin = true;
+            if (File.Exists(confSetting.FileName))
+            {
+                prof_setting = confSetting.Deserialize();
+            }
+
             try
             {
                 IsWorking = true;
                 if (filter.Equals(Global.DefaultCustomFilterKey))
                 {
+                    string status = "active";
                     if (_isCustomFilterEnabled)
                     {
+                        status = "disabled";
                         //disable
                         if (RemoveStaticStamps())
                         {
@@ -737,106 +765,138 @@ namespace CleanBrowsingClient.ViewModels
                             IsFamilyFilterEnabled = false;
                         }
                     }
+
+                    //sending disable status       2021/01/22
+                    if (prof_setting.UserCode.Length > 0)
+                    {
+                        using var client = new HttpClient()
+                        {
+                            DefaultRequestVersion = new Version(2, 0)
+                        };
+                        string hostName = Environment.GetEnvironmentVariable("COMPUTERNAME");
+                        string dev_type = getOSInfo();
+                        if (dev_type.Length == 0) dev_type = "Windows";
+                        string send_status_url = string.Format("https://my.cleanbrowsing.org/apis/devices/set-status?apikey={0}&device-name={1}&device-type={2}&state={3}", prof_setting.UserCode, hostName, dev_type, status);
+                        var response = await client.GetStringAsync(send_status_url);
+                    }
                 }
                 else if (filter.Equals(Global.DefaultAdultFilterKey))
                 {
-                    if (_isAdultFilterEnabled)
+                    if (prof_setting.PinCode.Length > 0)
                     {
-                        //disable
-                        if (RemoveStaticStamps())
-                        {
-                            if (DnsCryptProxyManager.IsDnsCryptProxyRunning())
-                            {
-                                await Task.Run(() => { DnsCryptProxyManager.Stop(); }).ConfigureAwait(false);
-                                await Task.Delay(Global.ServiceStopTime).ConfigureAwait(false);
-                            }
-                            if (DnsCryptProxyManager.IsDnsCryptProxyInstalled())
-                            {
-                                await Task.Run(() => { DnsCryptProxyManager.Uninstall(); }).ConfigureAwait(false);
-                                await Task.Delay(Global.ServiceUninstallTime).ConfigureAwait(false);
-                            }
-                            HandleNetworkInterfaces(false);
-                        }
-                        IsCustomFilterEnabled = false;
-                        IsAdultFilterEnabled = false;
-                        IsFamilyFilterEnabled = false;
+                        bAuthPin = ShowPasswordDlg();
                     }
-                    else
+
+                    if (bAuthPin)
                     {
-                        //enable
-                        if (SetStaticStamp(filter))
+                        if (_isAdultFilterEnabled)
                         {
-                            if (!DnsCryptProxyManager.IsDnsCryptProxyInstalled())
+                            //disable
+                            if (RemoveStaticStamps())
                             {
-                                await Task.Run(() => { DnsCryptProxyManager.Install(); }).ConfigureAwait(false);
-                                await Task.Delay(Global.ServiceInstallTime).ConfigureAwait(false);
+                                if (DnsCryptProxyManager.IsDnsCryptProxyRunning())
+                                {
+                                    await Task.Run(() => { DnsCryptProxyManager.Stop(); }).ConfigureAwait(false);
+                                    await Task.Delay(Global.ServiceStopTime).ConfigureAwait(false);
+                                }
+                                if (DnsCryptProxyManager.IsDnsCryptProxyInstalled())
+                                {
+                                    await Task.Run(() => { DnsCryptProxyManager.Uninstall(); }).ConfigureAwait(false);
+                                    await Task.Delay(Global.ServiceUninstallTime).ConfigureAwait(false);
+                                }
+                                HandleNetworkInterfaces(false);
                             }
-                            if (DnsCryptProxyManager.IsDnsCryptProxyRunning())
-                            {
-                                await Task.Run(() => { DnsCryptProxyManager.Restart(); }).ConfigureAwait(false);
-                                await Task.Delay(Global.ServiceRestartTime).ConfigureAwait(false);
-                            }
-                            else
-                            {
-                                await Task.Run(() => { DnsCryptProxyManager.Start(); }).ConfigureAwait(false);
-                                await Task.Delay(Global.ServiceStartTime).ConfigureAwait(false);
-                            }
-                            HandleNetworkInterfaces(true);
-                            IsAdultFilterEnabled = true;
                             IsCustomFilterEnabled = false;
+                            IsAdultFilterEnabled = false;
                             IsFamilyFilterEnabled = false;
                         }
+                        else
+                        {
+                            //enable
+                            if (SetStaticStamp(filter))
+                            {
+                                if (!DnsCryptProxyManager.IsDnsCryptProxyInstalled())
+                                {
+                                    await Task.Run(() => { DnsCryptProxyManager.Install(); }).ConfigureAwait(false);
+                                    await Task.Delay(Global.ServiceInstallTime).ConfigureAwait(false);
+                                }
+                                if (DnsCryptProxyManager.IsDnsCryptProxyRunning())
+                                {
+                                    await Task.Run(() => { DnsCryptProxyManager.Restart(); }).ConfigureAwait(false);
+                                    await Task.Delay(Global.ServiceRestartTime).ConfigureAwait(false);
+                                }
+                                else
+                                {
+                                    await Task.Run(() => { DnsCryptProxyManager.Start(); }).ConfigureAwait(false);
+                                    await Task.Delay(Global.ServiceStartTime).ConfigureAwait(false);
+                                }
+                                HandleNetworkInterfaces(true);
+                                IsAdultFilterEnabled = true;
+                                IsCustomFilterEnabled = false;
+                                IsFamilyFilterEnabled = false;
+                            }
+                        }
                     }
+                    
                 }
                 else if (filter.Equals(Global.DefaultFamilyFilterKey))
                 {
-                    if (_isFamilyFilterEnabled)
+                    if (prof_setting.PinCode.Length > 0)
                     {
-                        //disable
-                        if (RemoveStaticStamps())
-                        {
-                            if (DnsCryptProxyManager.IsDnsCryptProxyRunning())
-                            {
-                                await Task.Run(() => { DnsCryptProxyManager.Stop(); }).ConfigureAwait(false);
-                                await Task.Delay(Global.ServiceStopTime).ConfigureAwait(false);
-                            }
-                            if (DnsCryptProxyManager.IsDnsCryptProxyInstalled())
-                            {
-                                await Task.Run(() => { DnsCryptProxyManager.Uninstall(); }).ConfigureAwait(false);
-                                await Task.Delay(Global.ServiceUninstallTime).ConfigureAwait(false);
-                            }
-                            HandleNetworkInterfaces(false);
-                        }
-                        IsCustomFilterEnabled = false;
-                        IsFamilyFilterEnabled = false;
-                        IsAdultFilterEnabled = false;
+                        bAuthPin = ShowPasswordDlg();
                     }
-                    else
+
+                    if (bAuthPin)
                     {
-                        //enable
-                        if (SetStaticStamp(filter))
+                        if (_isFamilyFilterEnabled)
                         {
-                            if (!DnsCryptProxyManager.IsDnsCryptProxyInstalled())
+                            //disable
+                            if (RemoveStaticStamps())
                             {
-                                await Task.Run(() => { DnsCryptProxyManager.Install(); }).ConfigureAwait(false);
-                                await Task.Delay(Global.ServiceInstallTime).ConfigureAwait(false);
+                                if (DnsCryptProxyManager.IsDnsCryptProxyRunning())
+                                {
+                                    await Task.Run(() => { DnsCryptProxyManager.Stop(); }).ConfigureAwait(false);
+                                    await Task.Delay(Global.ServiceStopTime).ConfigureAwait(false);
+                                }
+                                if (DnsCryptProxyManager.IsDnsCryptProxyInstalled())
+                                {
+                                    await Task.Run(() => { DnsCryptProxyManager.Uninstall(); }).ConfigureAwait(false);
+                                    await Task.Delay(Global.ServiceUninstallTime).ConfigureAwait(false);
+                                }
+                                HandleNetworkInterfaces(false);
                             }
-                            if (DnsCryptProxyManager.IsDnsCryptProxyRunning())
-                            {
-                                await Task.Run(() => { DnsCryptProxyManager.Restart(); }).ConfigureAwait(false);
-                                await Task.Delay(Global.ServiceRestartTime).ConfigureAwait(false);
-                            }
-                            else
-                            {
-                                await Task.Run(() => { DnsCryptProxyManager.Start(); }).ConfigureAwait(false);
-                                await Task.Delay(Global.ServiceStartTime).ConfigureAwait(false);
-                            }
-                            HandleNetworkInterfaces(true);
-                            IsFamilyFilterEnabled = true;
                             IsCustomFilterEnabled = false;
+                            IsFamilyFilterEnabled = false;
                             IsAdultFilterEnabled = false;
                         }
+                        else
+                        {
+                            //enable
+                            if (SetStaticStamp(filter))
+                            {
+                                if (!DnsCryptProxyManager.IsDnsCryptProxyInstalled())
+                                {
+                                    await Task.Run(() => { DnsCryptProxyManager.Install(); }).ConfigureAwait(false);
+                                    await Task.Delay(Global.ServiceInstallTime).ConfigureAwait(false);
+                                }
+                                if (DnsCryptProxyManager.IsDnsCryptProxyRunning())
+                                {
+                                    await Task.Run(() => { DnsCryptProxyManager.Restart(); }).ConfigureAwait(false);
+                                    await Task.Delay(Global.ServiceRestartTime).ConfigureAwait(false);
+                                }
+                                else
+                                {
+                                    await Task.Run(() => { DnsCryptProxyManager.Start(); }).ConfigureAwait(false);
+                                    await Task.Delay(Global.ServiceStartTime).ConfigureAwait(false);
+                                }
+                                HandleNetworkInterfaces(true);
+                                IsFamilyFilterEnabled = true;
+                                IsCustomFilterEnabled = false;
+                                IsAdultFilterEnabled = false;
+                            }
+                        }
                     }
+                        
                 }
             }
             catch (Exception exception)
@@ -914,6 +974,99 @@ namespace CleanBrowsingClient.ViewModels
                 return false;
             }
             return false;
+        }
+
+        private bool ShowPasswordDlg()
+        {
+            Window mainWindow = Application.Current.MainWindow;
+            PasswordDlg pass_dlg = new PasswordDlg();
+            pass_dlg.Owner = mainWindow;
+            bool ret = (bool)pass_dlg.ShowDialog();
+            return ret;
+        }
+
+        private string getOSInfo()
+        {
+            //Get Operating system information.
+            OperatingSystem os = Environment.OSVersion;
+            //Get version information about the os.
+            Version vs = os.Version;
+
+            //Variable to hold our return value
+            string operatingSystem = "";
+
+            if (os.Platform == PlatformID.Win32Windows)
+            {
+                //This is a pre-NT version of Windows
+                switch (vs.Minor)
+                {
+                    case 0:
+                        operatingSystem = "95";
+                        break;
+                    case 10:
+                        if (vs.Revision.ToString() == "2222A")
+                            operatingSystem = "98SE";
+                        else
+                            operatingSystem = "98";
+                        break;
+                    case 90:
+                        operatingSystem = "Me";
+                        break;
+                    default:
+                        break;
+                }
+            }
+            else if (os.Platform == PlatformID.Win32NT)
+            {
+                switch (vs.Major)
+                {
+                    case 3:
+                        operatingSystem = "NT 3.51";
+                        break;
+                    case 4:
+                        operatingSystem = "NT 4.0";
+                        break;
+                    case 5:
+                        if (vs.Minor == 0)
+                            operatingSystem = "2000";
+                        else
+                            operatingSystem = "XP";
+                        break;
+                    case 6:
+                        if (vs.Minor == 0)
+                            operatingSystem = "Vista";
+                        else if (vs.Minor == 1)
+                            operatingSystem = "7";
+                        else if (vs.Minor == 2)
+                            operatingSystem = "8";
+                        else
+                            operatingSystem = "8.1";
+                        break;
+                    case 10:
+                        operatingSystem = "10";
+                        break;
+                    default:
+                        break;
+                }
+            }
+            //Make sure we actually got something in our OS check
+            //We don't want to just return " Service Pack 2" or " 32-bit"
+            //That information is useless without the OS version.
+            if (operatingSystem != "")
+            {
+                //Got something.  Let's prepend "Windows" and get more info.
+                operatingSystem = "Windows " + operatingSystem;
+                //See if there's a service pack installed.
+                if (os.ServicePack != "")
+                {
+                    //Append it to the OS name.  i.e. "Windows XP Service Pack 3"
+                    operatingSystem += " " + os.ServicePack;
+                }
+                //Append the OS architecture.  i.e. "Windows XP Service Pack 3 32-bit"
+                //operatingSystem += " " + getOSArchitecture().ToString() + "-bit";
+            }
+            //Return the information we've gathered.
+            return operatingSystem;
         }
     }
 }

@@ -2,6 +2,7 @@
 using CleanBrowsingClient.Events;
 using CleanBrowsingClient.Models;
 using CleanBrowsingClient.Services;
+using CleanBrowsingClient.Helper;
 using MaterialDesignThemes.Wpf;
 using Prism.Commands;
 using Prism.Events;
@@ -13,6 +14,8 @@ using System.Collections.ObjectModel;
 using System.Diagnostics;
 using System.IO;
 using System.Reflection;
+using CleanBrowsingClient.Views;
+using System.Windows;
 
 namespace CleanBrowsingClient.ViewModels
 {
@@ -24,6 +27,9 @@ namespace CleanBrowsingClient.ViewModels
         private readonly IEventAggregator _eventAggregator;
         private readonly IAppConfigurationService _appConfigurationService;
         private readonly AppConfiguration _appConfiguration;
+
+        private ConfigureSettingManager confSetting = new ConfigureSettingManager();
+        private ConfigureSetting prof_setting = new ConfigureSetting();
 
         public ISnackbarMessageQueue MessageQueue
         {
@@ -61,6 +67,7 @@ namespace CleanBrowsingClient.ViewModels
         public DelegateCommand NavigateToMainView { get; private set; }
         public DelegateCommand ResetToDefaultSettingsCommand { get; private set; }
         public DelegateCommand OpenLogDirectoryCommand { get; private set; }
+        public DelegateCommand SetPasswordCommand { get; private set; }
 
         public SettingsViewModel(
             ILoggerFacade logger,
@@ -77,6 +84,7 @@ namespace CleanBrowsingClient.ViewModels
             NavigateToMainView = new DelegateCommand(NavigateToMain);
             ResetToDefaultSettingsCommand = new DelegateCommand(ResetToDefaultSettings);
             OpenLogDirectoryCommand = new DelegateCommand(OpenLogDirectory);
+            SetPasswordCommand = new DelegateCommand(SetPassword);
             LogLevels = new ObservableCollection<LogLevel>
             {
                 new LogLevel
@@ -183,6 +191,43 @@ namespace CleanBrowsingClient.ViewModels
             {
                 _logger.Log(exception.Message, Category.Exception, Priority.High);
                 return false;
+            }
+        }
+
+        private void SetPassword()
+        {
+            //sending disable status       2021/01/22
+            if (File.Exists(confSetting.FileName))
+            {
+                prof_setting = confSetting.Deserialize();
+            }
+
+            if (prof_setting.PinCode.Length > 0)
+            {
+                ShowPasswordDlg();
+            }
+            else
+            {
+                ShowPassSettingDlg();
+            }
+        }
+
+        private void ShowPassSettingDlg()
+        {
+            Window mainWindow = Application.Current.MainWindow;
+            PasswordSettingDlg passset_dlg = new PasswordSettingDlg();
+            passset_dlg.Owner = mainWindow;
+            passset_dlg.ShowDialog();
+        }
+        private void ShowPasswordDlg()
+        {
+            Window mainWindow = Application.Current.MainWindow;
+            PasswordDlg pass_dlg = new PasswordDlg();
+            pass_dlg.Owner = mainWindow;
+            bool? ret = pass_dlg.ShowDialog();
+            if (ret == true)
+            {
+                ShowPassSettingDlg();
             }
         }
     }

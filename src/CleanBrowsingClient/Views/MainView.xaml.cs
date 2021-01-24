@@ -1,4 +1,5 @@
-﻿using System.Windows.Controls;
+﻿using CleanBrowsingClient.Converters;
+using System.Windows.Controls;
 
 namespace CleanBrowsingClient.Views
 {

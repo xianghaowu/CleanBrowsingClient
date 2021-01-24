@@ -27,7 +27,7 @@ namespace CleanBrowsingClient.Models
         private int _cert_refresh_delay;
         private bool _dnscrypt_ephemeral_keys;
         private bool _tls_disable_session_tickets;
-        private bool _log;
+        //private bool _log;
         private int _log_level;
         private string _log_file;
         private Dictionary<string, Source> _sources;
@@ -39,8 +39,8 @@ namespace CleanBrowsingClient.Models
         private int _log_files_max_age;
         private int _log_files_max_backups;
         private bool _block_ipv6;
-        private bool _block_unqualified;
-        private bool _block_undelegated;
+        //private bool _block_unqualified;
+        //private bool _block_undelegated;
         private int _reject_ttl;
         private string _forwarding_rules;
         private string _cloaking_rules;
