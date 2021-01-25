@@ -15,9 +15,9 @@
             </materialDesign:Card.Background>
             <StackPanel Orientation="Vertical">
                 <TextBlock Style="{DynamicResource MaterialDesignHeadline5TextBlock}">Add a custom filter</TextBlock>
-                <TextBlock VerticalAlignment="Center" Style="{DynamicResource MaterialDesignSubtitle2TextBlock}">Please enter profile code:</TextBlock>
+                <TextBlock VerticalAlignment="Center" Style="{DynamicResource MaterialDesignSubtitle2TextBlock}">Paste your stamp from https://my.cleanbrowsing.org/ here.</TextBlock>
 
-                <TextBox Text="{Binding Stamp}" materialDesign:HintAssist.Hint="[CODE]"
+                <TextBox Text="{Binding Stamp}" materialDesign:HintAssist.Hint="stamp://"
                     materialDesign:TextFieldAssist.TextBoxViewMargin="1 0 1 0"
                     materialDesign:HintAssist.FloatingScale="0.50"
                     Style="{StaticResource MaterialDesignFloatingHintTextBox}"

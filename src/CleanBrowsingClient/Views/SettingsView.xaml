@@ -32,16 +32,6 @@
                         <ColumnDefinition Width="Auto"/>
                         <ColumnDefinition Width="*" />
                         <ColumnDefinition Width="200"/>
-                    </Grid.ColumnDefinitions>
-                    <TextBlock VerticalAlignment="Center" Grid.Column="0" Style="{DynamicResource MaterialDesignSubtitle1TextBlock}" HorizontalAlignment="Stretch">Password Protection</TextBlock>
-                    <Button Command="{Binding SetPasswordCommand}" Name="PasswordBtn"  Grid.Column="2" Style="{DynamicResource MaterialDesignRaisedButton}" Foreground="White" Content="Set Password" Margin="2,0" HorizontalAlignment="Right"/>
-                </Grid>
-
-                <Grid Margin="0,8,0,8">
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="Auto"/>
-                        <ColumnDefinition Width="*" />
-                        <ColumnDefinition Width="200"/>
                         <ColumnDefinition Width="Auto"/>
                     </Grid.ColumnDefinitions>
                     <TextBlock VerticalAlignment="Center" Grid.Column="0" Style="{DynamicResource MaterialDesignSubtitle1TextBlock}" HorizontalAlignment="Stretch">Log Level</TextBlock>

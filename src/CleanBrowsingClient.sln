@@ -5,7 +5,7 @@ VisualStudioVersion = 16.0.29424.173
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "CleanBrowsingClient", "CleanBrowsingClient\CleanBrowsingClient.csproj", "{60AB2E04-725F-41EC-8F07-2C633115E939}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Uninstall_service", "Uninstall\Uninstall_service.csproj", "{6D2F3A05-D31B-474C-AD72-F01EC1B92D3E}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Uninstall", "Uninstall\Uninstall.csproj", "{6D2F3A05-D31B-474C-AD72-F01EC1B92D3E}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
